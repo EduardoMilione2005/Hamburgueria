@@ -12,6 +12,7 @@ public class ClienteRepository {
     private int proximoId = 1;
 
     public ClienteRepository() {
+        // Clientes pré-cadastrados
         clientes.add(new Cliente(proximoId++, "Ana Souza", "32 99999-0001", "Rua das Flores, 10"));
         clientes.add(new Cliente(proximoId++, "Bruno Lima", "32 98888-1234", ""));
     }
