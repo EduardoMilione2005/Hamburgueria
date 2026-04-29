@@ -64,15 +64,16 @@ class PedidoTest {
         ItemPedido item = new ItemPedido(burger);
         item.adicionarExtra(extra);
         p.adicionarItem(item);
+        // 28.90 + 12.90 = 41.80
         assertEquals(41.80, p.calcularTotal(), 0.01);
     }
 
     @Test
     void deveCalcularTotalComMultiplosItens() {
         Pedido p = new Pedido();
-        p.adicionarItem(new ItemPedido(burger));
+        p.adicionarItem(new ItemPedido(burger)); // 28.90
         Burger burger2 = new Burger(2, "Bacon Inferno", "Desc", 34.90, "🔥", "Picante");
-        p.adicionarItem(new ItemPedido(burger2));
+        p.adicionarItem(new ItemPedido(burger2)); // 34.90
         assertEquals(63.80, p.calcularTotal(), 0.01);
     }
 

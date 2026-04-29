@@ -28,7 +28,7 @@ class PedidoServiceTest {
 
     @Test
     void deveCalcularTotalCorreto() {
-        service.adicionarItem(1, List.of("e1"));
+        service.adicionarItem(1, List.of("e1")); // Smash 28.90 + Batata 12.90
         assertEquals(41.80, service.calcularTotalAtual(), 0.01);
     }
 
@@ -56,7 +56,7 @@ class PedidoServiceTest {
         service.adicionarItem(1, List.of());
         Pedido confirmado = service.confirmarPedido();
         assertEquals(Pedido.Status.CONFIRMADO, confirmado.getStatus());
-        assertTrue(service.getPedidoAtual().estaVazio());
+        assertTrue(service.getPedidoAtual().estaVazio()); // novo pedido vazio
     }
 
     @Test
@@ -68,7 +68,7 @@ class PedidoServiceTest {
 
     @Test
     void deveVincularClienteAoPedido() {
-        service.vincularCliente(1);
+        service.vincularCliente(1); // Ana Souza existe no repo
         assertNotNull(service.getPedidoAtual().getCliente());
         assertEquals("Ana Souza", service.getPedidoAtual().getCliente().getNome());
     }
