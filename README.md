@@ -55,9 +55,7 @@ O sistema permite ao atendente de uma hamburgueria:
 ### Compilar e rodar
 
 ```bash
-
-git clone https://github.com/seu-usuario/hamburgueria.
-
+git clone https://github.com/seu-usuario/hamburgueria.git
 cd hamburgueria
 
 mvn clean compile
@@ -199,6 +197,7 @@ ValidacaoPedidoHandler (abstract)
 **Uso no `PedidoService`:**
 
 ```java
+// Antes de confirmar, toda a cadeia é executada automaticamente
 ValidacaoCadeia.obter().validar(pedidoAtual);
 pedidoAtual.confirmar();
 ```
@@ -218,11 +217,53 @@ pedidoAtual.confirmar();
 
 ---
 
+### 7. State
+
+**Localização:** `hamburgueria/state/`
+
+**Contexto:** Um pedido passa por diversas fases — montagem, confirmação, preparo, pronto e entrega. Cada fase permite operações diferentes, e o código original controlava isso com `if (status != Status.X)` espalhados por toda a classe `Pedido`, tornando difícil adicionar novos estados.
+
+**Implementação:** `PedidoState` é a interface State. `PedidoContext` é o contexto que delega todas as operações ao estado atual. Cada estado concreto implementa exatamente o que é permitido — e lança `EstadoInvalidoException` para o que não é.
+
+```
+PedidoState (interface)
+├── EstadoAberto      📝  → confirmar(), cancelar(), adicionarItem(), removerItem()
+├── EstadoConfirmado  ✅  → iniciarPreparo(), cancelar()
+├── EstadoEmPreparo   🍳  → marcarPronto(), cancelar()
+├── EstadoPronto      🔔  → entregar()
+├── EstadoEntregue    🎉  → (estado terminal — nenhuma operação)
+└── EstadoCancelado   ❌  → (estado terminal — nenhuma operação)
+```
+
+Fluxo de transições:
+```
+ABERTO → CONFIRMADO → EM_PREPARO → PRONTO → ENTREGUE
+  ↓           ↓            ↓          ↓
+CANCELADO  CANCELADO  CANCELADO  (bloqueado)
+```
+
+**Saída no console ao percorrer o fluxo:**
+```
+[State] Pedido #1: 📝 ABERTO → ✅ CONFIRMADO
+[State] Pedido #1: ✅ CONFIRMADO → 🍳 EM_PREPARO
+[State] Pedido #1: 🍳 EM_PREPARO → 🔔 PRONTO
+[State] Pedido #1: 🔔 PRONTO → 🎉 ENTREGUE
+```
+
+**Benefício:** Adicionar um novo estado (ex.: `EM_ROTA`) requer apenas criar uma nova classe implementando `PedidoState` — sem alterar nenhum estado existente nem o `PedidoContext`. Toda regra de transição fica encapsulada no estado que a origina.
+
+---
+
 ## Estrutura do Projeto
 
 ```
 src/
 └── main/java/hamburgueria/
+    ├── state/                       # Padrão State (ciclo de vida do pedido)
+    │   ├── PedidoState.java              ← interface State
+    │   ├── PedidoContext.java            ← contexto (substitui Pedido no fluxo)
+    │   ├── EstadosConcretos.java         ← 6 estados concretos
+    │   └── EstadoInvalidoException.java  ← exceção de transição inválida
     ├── chainofresponsibility/       # Padrão Chain of Responsibility (validação)
     │   ├── ValidacaoPedidoHandler.java   ← handler abstrato
     │   ├── ValidacaoHandlers.java        ← handlers concretos + ValidacaoCadeia
@@ -262,6 +303,7 @@ src/
         └── MenuConsole.java         # Interface de linha de comando
 
 src/test/java/hamburgueria/
+    ├── PedidoStateTest.java         # Testes do State
     ├── ValidacaoCadeiaTest.java     # Testes do Chain of Responsibility
     ├── BurgerTest.java
     ├── ClienteTest.java
@@ -275,6 +317,7 @@ src/test/java/hamburgueria/
 ## Testes
 
 ```bash
+
 mvn test
 
 mvn test -Dtest=ValidacaoCadeiaTest
@@ -303,3 +346,4 @@ Os testes cobrem os cenários principais do Chain of Responsibility:
 | Decorator | Estrutural | Personalização dinâmica de burgers |
 | Bridge | Estrutural | Separação entre notificação e canal |
 | Chain of Responsibility | Comportamental | Validação sequencial de pedidos |
+| State | Comportamental | Ciclo de vida e transições de estado do pedido |
