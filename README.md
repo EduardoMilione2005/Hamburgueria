@@ -197,7 +197,7 @@ ValidacaoPedidoHandler (abstract)
 **Uso no `PedidoService`:**
 
 ```java
-// Antes de confirmar, toda a cadeia é executada automaticamente
+
 ValidacaoCadeia.obter().validar(pedidoAtual);
 pedidoAtual.confirmar();
 ```
@@ -254,11 +254,53 @@ CANCELADO  CANCELADO  CANCELADO  (bloqueado)
 
 ---
 
+### 8. Observer
+
+**Localização:** `hamburgueria/observer/`
+
+**Contexto:** Toda vez que um pedido muda de estado (confirmado, em preparo, pronto, entregue, cancelado), múltiplos subsistemas precisam reagir — a cozinha quer saber de novos pedidos, o cliente quer ser notificado, o financeiro precisa registrar a receita, e o sistema de auditoria quer guardar um log. Embutir tudo isso no `PedidoContext` criaria um acoplamento rígido.
+
+**Implementação:** `PedidoObserver` é a interface Observer. `PedidoEventPublisher` é a interface Subject. `PedidoContext` implementa `PedidoEventPublisher` e, a cada chamada de `transicionarPara()`, notifica todos os observadores registrados — integrando State e Observer num ponto único.
+
+```
+PedidoObserver (interface)
+├── LogDeEstadosObserver    → registra todas as transições com timestamp
+├── CozinhaObserver         → alerta o painel da cozinha
+├── ClienteObserver         → notifica o app do cliente
+└── FaturamentoObserver     → registra receita e estornos financeiros
+```
+
+**Ponto de integração State + Observer no `PedidoContext`:**
+
+```java
+public void transicionarPara(PedidoState novoEstado) {
+    PedidoState anterior = this.estadoAtual;
+    this.estadoAtual = novoEstado;
+    notificarObservadores(anterior, novoEstado); 
+```
+
+**Saída no console ao confirmar um pedido:**
+```
+[State] Pedido #1: 📝 ABERTO → ✅ CONFIRMADO
+  📋 [Log] 12/05/2025 14:32:10 Pedido #1: 📝 ABERTO → ✅ CONFIRMADO
+  🍳 [Cozinha] NOVO PEDIDO #1 recebido! 2 item(s) — R$ 63.80
+  📱 [App Cliente] Ana, seu pedido #1 foi confirmado! Aguarde o preparo. 🍔
+  💰 [Financeiro] Pedido #1 registrado: +R$ 63.80 (dia: R$ 63.80)
+```
+
+**Benefício:** Adicionar um novo observador (ex.: integração com estoque) requer apenas criar uma classe que implemente `PedidoObserver` e registrá-la — zero alterações no `PedidoContext` ou nos estados existentes.
+
+---
+
 ## Estrutura do Projeto
 
 ```
 src/
 └── main/java/hamburgueria/
+    ├── observer/                    # Padrão Observer (eventos de mudança de estado)
+    │   ├── PedidoObserver.java           ← interface Observer
+    │   ├── PedidoEventPublisher.java     ← interface Subject
+    │   └── ObserversConcretos.java       ← 4 observers + ObserverFactory
     ├── state/                       # Padrão State (ciclo de vida do pedido)
     │   ├── PedidoState.java              ← interface State
     │   ├── PedidoContext.java            ← contexto (substitui Pedido no fluxo)
@@ -303,6 +345,7 @@ src/
         └── MenuConsole.java         # Interface de linha de comando
 
 src/test/java/hamburgueria/
+    ├── PedidoObserverTest.java      # Testes do Observer
     ├── PedidoStateTest.java         # Testes do State
     ├── ValidacaoCadeiaTest.java     # Testes do Chain of Responsibility
     ├── BurgerTest.java
@@ -317,7 +360,6 @@ src/test/java/hamburgueria/
 ## Testes
 
 ```bash
-
 mvn test
 
 mvn test -Dtest=ValidacaoCadeiaTest
@@ -347,3 +389,11 @@ Os testes cobrem os cenários principais do Chain of Responsibility:
 | Bridge | Estrutural | Separação entre notificação e canal |
 | Chain of Responsibility | Comportamental | Validação sequencial de pedidos |
 | State | Comportamental | Ciclo de vida e transições de estado do pedido |
+| Observer | Comportamental | Reação desacoplada a mudanças de estado |
+---
+
+## Diagrama de Classes
+
+O arquivo `diagrama-classes.mermaid` na raiz do projeto contém o diagrama completo de todas as classes e seus relacionamentos, organizado por padrão de projeto.
+
+Para visualizar, abra o arquivo em qualquer editor com suporte a Mermaid (VS Code + extensão, GitHub, mermaid.live).
