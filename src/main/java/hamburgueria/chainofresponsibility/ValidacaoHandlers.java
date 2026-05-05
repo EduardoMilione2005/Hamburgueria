@@ -77,9 +77,9 @@ class ValidarStatusPedidoHandler extends ValidacaoPedidoHandler {
     }
 }
 
-public class ValidacaoCadeia {
+public class ValidacaoHandlers {
 
-    private ValidacaoCadeia() {}
+    private ValidacaoHandlers() {}
 
     public static ValidacaoPedidoHandler obter() {
         ValidacaoPedidoHandler statusHandler      = new ValidarStatusPedidoHandler();
