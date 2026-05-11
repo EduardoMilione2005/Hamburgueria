@@ -1,6 +1,6 @@
 # 🍔 Hamburgueria Sabor na Brasa
 
-Sistema de gerenciamento de pedidos para hamburgueria, desenvolvido em Java 17 com Maven. O projeto aplica **6 padrões de projeto** do catálogo GoF em cenários reais de uma hamburgueria.
+Sistema de gerenciamento de pedidos para hamburgueria, desenvolvido em Java 17 com Maven. O projeto aplica **7 padrões de projeto** do catálogo GoF em cenários reais de uma hamburgueria.
 
 ---
 
@@ -16,6 +16,8 @@ Sistema de gerenciamento de pedidos para hamburgueria, desenvolvido em Java 17 c
   - [Decorator](#4-decorator)
   - [Bridge](#5-bridge)
   - [Chain of Responsibility](#6-chain-of-responsibility)
+  - [Builder](#7-builder)
+  - [Builder](#7-builder)
 - [Estrutura do Projeto](#estrutura-do-projeto)
 - [Testes](#testes)
 
@@ -292,6 +294,41 @@ public void transicionarPara(PedidoState novoEstado) {
 
 ---
 
+
+### 7. Builder
+
+**Localização:** `hamburgueria/builder/ItemPedidoBuilder.java`
+
+**Contexto:** A montagem de um `ItemPedido` envolve múltiplas decisões opcionais: quais extras adicionar, a quantidade e uma observação específica (ex.: "sem cebola"). Antes do Builder, essa lógica estava duplicada no `PedidoService` e no `MenuConsole`, sem validação central e sem API expressiva.
+
+**Implementação:** `ItemPedidoBuilder` encapsula toda a construção do `ItemPedido` com uma interface fluente. O `build()` realiza as validações antes de retornar o objeto pronto.
+
+```java
+ItemPedido item = new ItemPedidoBuilder(burger)
+        .comExtra(fritas)
+        .comExtra(refrigerante)
+        .comQuantidade(2)
+        .comObservacao("sem cebola")
+        .build();
+```
+
+**Estrutura:**
+
+```
+ItemPedidoBuilder
+├── ItemPedidoBuilder(Burger)        ← construtor exige o produto base
+├── comExtra(Extra)       : Builder  ← adiciona extras (fluente)
+├── comQuantidade(int)    : Builder  ← define quantidade (padrão: 1)
+├── comObservacao(String) : Builder  ← observação do item (opcional)
+└── build()               : ItemPedido ← valida e constrói o objeto
+```
+
+**Integração:** O `PedidoService` usa o Builder em `criarItem()`, e o `MenuConsole` o usa no fluxo do cardápio, possibilitando que o atendente informe quantidade e observação item a item diretamente na UI.
+
+**Benefício:** Toda criação de `ItemPedido` passa por um único ponto com validações explícitas. Adicionar novos atributos opcionais (ex.: ponto de carne, alergênicos) exige apenas um novo método no Builder — sem alterar construtores nem código cliente.
+
+---
+
 ## Estrutura do Projeto
 
 ```
@@ -306,6 +343,8 @@ src/
     │   ├── PedidoContext.java            ← contexto (substitui Pedido no fluxo)
     │   ├── EstadosConcretos.java         ← 6 estados concretos
     │   └── EstadoInvalidoException.java  ← exceção de transição inválida
+    ├── builder/                     # Padrão Builder (montagem de itens)
+    │   └── ItemPedidoBuilder.java         ← builder fluente para ItemPedido
     ├── chainofresponsibility/       # Padrão Chain of Responsibility (validação)
     │   ├── ValidacaoPedidoHandler.java   ← handler abstrato
     │   ├── ValidacaoHandlers.java        ← handlers concretos + ValidacaoCadeia
@@ -376,6 +415,19 @@ Os testes cobrem os cenários principais do Chain of Responsibility:
 | `pedidoComItensAcimaDoLimiteDeveLancarExcecao` | Mais de 10 itens é rejeitado |
 | `pedidoJaConfirmadoDeveLancarExcecao` | Pedido já confirmado é rejeitado pelo status |
 
+O `ItemPedidoBuilderTest` cobre os cenários do Builder:
+
+| Teste | Cenário |
+|---|---|
+| `buildItemSimples` | Builder sem opcionais cria item com defaults corretos |
+| `buildItemComExtras` | Extras acumulam preço corretamente |
+| `buildItemComQuantidade` | Quantidade multiplica o total |
+| `buildItemComObservacao` | Observação é propagada ao item |
+| `builderFluenteCompleto` | Encadeamento completo retorna item íntegro |
+| `burgerNuloDeveLancarExcecao` | Burger nulo lança `IllegalArgumentException` |
+| `extraNuloDeveLancarExcecao` | Extra nulo lança `IllegalArgumentException` |
+| `quantidadeZeroDeveLancarExcecao` | Quantidade zero lança `IllegalArgumentException` |
+
 ---
 
 ## Resumo dos Padrões
@@ -388,6 +440,7 @@ Os testes cobrem os cenários principais do Chain of Responsibility:
 | Decorator | Estrutural | Personalização dinâmica de burgers |
 | Bridge | Estrutural | Separação entre notificação e canal |
 | Chain of Responsibility | Comportamental | Validação sequencial de pedidos |
+| Builder | Criacional | Montagem flexível e validada de itens do pedido |
 | State | Comportamental | Ciclo de vida e transições de estado do pedido |
 | Observer | Comportamental | Reação desacoplada a mudanças de estado |
 ---
